@@ -189,10 +189,13 @@ class Router:
 
     for route in routes:
       source_relat = self.relations[srcif]
-      #dest_relat = self.relations[route[PEER]]
+      dest_relat = self.relations[route[PEER]]
 
       if source_relat == CUST:
         outroutes.append(route)
+      else:
+        if dest_relat == CUST:
+          outroutes.append(route)
 
     return outroutes
 
@@ -222,7 +225,8 @@ class Router:
       # Final check: enforce peering relationships
       routes = self.filter_relationships(srcif, routes)
       # We can assume that we have the single best route
-      peer = routes[0][PEER]
+      if len(routes) > 0:
+        peer = routes[0][PEER]
     return self.sockets[peer] if peer else None
 
   def adjust_addr(self, addr):
@@ -256,19 +260,15 @@ class Router:
 
   def forward(self, srcif, packet):
     """	Forward a data packet	"""
-
-    avail_routes = self.lookup_routes(packet[DEST])
-    num_routes = len(avail_routes)
-
-    k = json.dumps(packet)
-
-    if num_routes == 0:
-      self.send_error(srcif, packet)
-    elif num_routes == 1:
-      self.sockets[avail_routes[0][PEER]].sendall(bytes(k, "utf-8"))
+    if DEBUG: print('srcif', srcif)
+    correct_route = self.get_route(srcif, packet[DEST])
+    if (correct_route):
+      correct_route.sendall(bytes(json.dumps(packet), "utf-8"))
     else:
-      self.get_route(srcif, packet[DEST]).sendall(bytes(k, "utf-8"))
-
+      if DEBUG: print('packet', packet)
+      if DEBUG: print('srcif', srcif)
+      self.send_error(self.sockets[srcif], packet)
+      return False
     return True
 
   def coalesce(self):
@@ -294,7 +294,7 @@ class Router:
       return False
 
     # Store a copy of the announcement
-    self.updates.append(packet[MESG])
+    self.updates.append(packet)
 
     # Store entry to forwarding table
     self.routes.append(self.create_entry(packet))
@@ -302,19 +302,56 @@ class Router:
     msg = packet[MESG]
     msg[APTH].append(self.asn)
 
-    # Send copies of the announcement to neighbors
-    for sock in self.sockets:
+    # # Send copies of the announcement to neighbors
+    # for neighbor_addr in self.sockets:
 
-      if sock != srcif:
-        new_packet = {SRCE: self.adjust_addr(sock), DEST: sock, TYPE: UPDT, MESG: msg}
+    #   if neighbor_addr != srcif:
+    #     new_packet = {SRCE: self.adjust_addr(neighbor_addr), DEST: addr, TYPE: UPDT, MESG: msg}
+    #     k = json.dumps(new_packet)
+    #     self.sockets[neighbor_addr].sendall(bytes(k, "utf-8"))
+
+    for addr, neighbor in self.sockets.items():
+      send = False
+      if self.relations[srcif] == CUST: # if source of update/revoke msg is a customer
+        send = True
+      else: # if source of update/revoke msg is a peer or provider
+        if self.relations[addr] == CUST: # check if sending our update/revoke msg to a customer
+          send = True
+
+      if send and srcif != addr: # if passed all checks AND this neighbor is not the person we received the message from
+        new_packet = {SRCE: self.adjust_addr(addr), DEST: addr, TYPE: UPDT, MESG: msg}
         k = json.dumps(new_packet)
-        self.sockets[sock].sendall(bytes(k, "utf-8"))
+        neighbor.sendall(bytes(k, "utf-8"))
 
     return True
 
   def revoke(self, packet):
     """	handle revoke packets	"""
-    # TODO
+
+    # Store a copy of the announcement
+    self.updates.append(packet)
+
+    # Remove dead entr(ies) from routing table
+    for revocation in packet[MESG]:
+      for entry in self.routes:
+        if revocation[NTWK] == entry[NTWK] and revocation[NMSK] == entry[NMSK] and packet[SRCE] == entry[PEER]:
+          self.routes.remove(entry)
+
+    # Send copies of announcement to neighbor
+
+    for addr, neighbor in self.sockets.items():
+      send = False
+      if self.relations[packet[SRCE]] == CUST: # if source of update/revoke msg from a customer
+        send = True
+      else: # if source of update/revoke msg from a peer or provider
+        if self.relations[addr] == CUST: # if sending our update/revoke msg to a customer
+          send = True
+
+      if send and packet[SRCE] != addr: # if passed all checks AND this neighbor is not the person we received the message from
+        new_packet = {SRCE: self.adjust_addr(addr), DEST: addr, TYPE: RVKE, MESG: packet[MESG]}
+        k = json.dumps(new_packet)
+        neighbor.sendall(bytes(k, "utf-8"))
+
     return True
 
   def dump(self, packet):
@@ -331,8 +368,7 @@ class Router:
     if packet[TYPE] == UPDT:
       return self.update(srcif, packet)
     elif packet[TYPE] == RVKE:
-      # TODO
-      return self.revoke(srcif, packet)
+      return self.revoke(packet)
     elif packet[TYPE] == DATA:
       return self.forward(srcif, packet)
     elif packet[TYPE] == NRTE:
@@ -352,9 +388,9 @@ class Router:
 
   def send_error(self, conn, msg):
     """ Send a no_route error message """
-    '2' + 2
-
-    dict = {SRCE: "", DEST: msg[SRCE], TYPE: NRTE, MESG: {}}
+    if DEBUG: print("PACKET", msg)
+    dict = {SRCE: self.adjust_addr(msg[SRCE]), DEST: msg[SRCE], TYPE: NRTE, MESG: {}}
+    if DEBUG: print("NO ROUTE MESSAGE", dict)
     conn.sendall(bytes(json.dumps(dict), "utf-8"))
 
   def run(self):
