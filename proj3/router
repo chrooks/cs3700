@@ -58,7 +58,7 @@ class Router:
     for relationship in networks:
       # networks comes in the form of ip.add.re.ss-relation
 
-      # splits along the '-'
+      # splits along  the '-'
       network, relation = relationship.split("-")
       if DEBUG:
         print("Starting socket for", network, relation)
