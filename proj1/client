@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+import argparse
+import socket
+import ssl
+
+parser = argparse.ArgumentParser()
+
+# Adds necessary arguments for hostname, nuid, port, & security
+parser.add_argument("-p", type=int, default=27993, dest = "port", help="the TCP port that the server is listening on")
+parser.add_argument("-s", dest = "secure", action="store_true",  default = False, help="specifies whether or not to use a TLS encrypted socket connection")
+parser.add_argument("hostname", help="specifies the name of the server")
+parser.add_argument("NEU ID", help="specifies NEU ID to lookup. (must include leading zeroes)")
+args = parser.parse_args()
+
+# Sets port to 27994 when -s flag is ticked & port is unspecified
+if (args.secure and args.port == 27993):
+    port = 27994
+else:
+    port = args.port
+host = args.hostname
+nuid = args.getattr(args, "NEU ID")
+
+secret_flag = ""
+
+# Extracts full message from the given socket ending at \n 
+# Returns a list of tokens derived from the received message
+def receiveMessage(socket):
+    stream = ""
+    # Continuously tries to receive message until \n is encountered
+    while True:
+        stream += socket.recv(8192).decode("utf-8")
+        if stream.endswith('\n'):
+            break
+    return stream.split()
+
+# Executes the protocol, reading messages and counting the specified character until receiving BYE message
+def execProtocol(s):
+    s.sendall(f"ex_string HELLO {nuid}\n".encode("utf-8"))
+    while True: 
+        msgArgs = receiveMessage(s)
+        if msgArgs[1] == "BYE":
+            print(msgArgs[2])
+            break
+        elif msgArgs[1] == "FIND":
+            s.sendall(f"ex_string COUNT {msgArgs[3].count(msgArgs[2])}\n".encode("utf-8"))
+        else:
+            print("Something went wrong, 2nd argument should be either \"BYE\" or \"COUNT\"")
+            break
+
+# Creates socket
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((host, port))
+
+    # Wraps socket in SSL wrapper if flag is ticked
+    if (args.secure):
+        context = ssl.create_default_context()
+        secure_sock = context.wrap_socket(s, server_hostname=host)
+        execProtocol(secure_sock)
+    else:
+        # If not, just runs protocol with regular socket
+        execProtocol(s)

@@ -1,0 +1,100 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "cp test local to remote",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "cp",
+                "./hello.txt",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/hello.txt"
+            ]
+        },
+        {
+            "name": "cp test remote to local",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "cp",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/test.txt",
+                "./test.txt"
+            ]
+        },
+        {
+            "name": "mv test local to remote",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "mv",
+                "./hello.txt",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/hello.txt"
+            ]
+        },
+        {
+            "name": "mv test remote to local",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "mv",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/hello.txt",
+                "./hello.txt"
+            ]
+        },
+        {
+            "name": "mkdir Test",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "mkdir",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/test2/"
+            ]
+        },
+        {
+            "name": "rmdir Test",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "rmdir",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/test2/"
+            ]
+        },
+        {
+            "name": "ls Test",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "ls",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/"
+            ]
+        },
+        {
+            "name": "rm Test",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "rm",
+                "ftps://brooksch:bQY65s1k8R9Nu3Xxe47K@ftp.3700.network:21/test.txt"
+            ]
+        }
+    ]
+}
