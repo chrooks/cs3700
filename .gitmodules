@@ -1,0 +1,9 @@
+[submodule "proj4"]
+	path = proj4
+	url = https://github.com/chrooks/p4-transport.git
+[submodule "proj5"]
+	path = proj5
+	url = https://github.com/chrooks/p5-crawler.git
+[submodule "proj6"]
+	path = proj6
+	url = https://github.com/chrooks/p6-raft.git
